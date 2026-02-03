@@ -55,3 +55,38 @@ updatedpen %>%
   ) +
   ggtitle("Flipper Length by Island") +
   xlab("")
+
+# Graph body mass by species
+updatedpen %>% 
+  ggplot(aes(x = species,
+             y = body_mass_g)) +
+  geom_bar(stat = "identity")
+# calculate the total weight of Gentoo Penguin
+penguins %>% 
+  filter(species == "Gentoo") %>% 
+  pluck("body_mass_g") %>% 
+  sum(na.rm = T)
+  
+# The first graph did not match our data. So we need to alter the geom_bar()
+# Stack
+updatedpen %>% 
+  ggplot(aes(x = species,
+             y = body_mass_g)) +
+  geom_bar(stat = "identity", position = "stack")
+
+# Plot average body mass of penguins by sex and species
+updatedpen %>% 
+  ggplot(aes(x = species,
+             y = body_mass_g, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge")
+
+?geom_bar()
+
+# plot average body mass of penguins by sex and species
+updatedpen %>% 
+  group_by(sex, species) %>% 
+  summarise(avg_mass_g = mean(body_mass_g, na.rm = T)) %>% 
+  ggplot(aes(x = species, 
+             y = avg_mass_g,
+             fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge")
