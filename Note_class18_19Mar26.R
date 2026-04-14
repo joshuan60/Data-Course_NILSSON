@@ -23,8 +23,6 @@ keepers = c('Family', 'Species_number', 'Species_name', 'English_name',
             'Clutch_size', 'Egg_mass') %>% 
   str_to_lower()
 
-str_squish() # remove white space
-
 
 # separate male data
 male = df %>% 
