@@ -1,0 +1,93 @@
+---
+title: "Exam 3 Skills Test"
+author: "Joshua Nilsson"
+date: "2026-04-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(janitor)
+library(easystats)
+library(broom)
+```
+
+## Question 1: Clean the table, and reconstruct the example graph.
+
+In this section, I loaded in our data and converted the Salary columns into rows, the names of each column went to Rank and the values to Salary. I updated the professor titles so they were more clear. Then I dropped the unneeded information. 
+```{r load-salaries}
+salaries <- read.csv("FacultySalaries_1995.csv")
+# Cleaning the csv to add the necessary rows for our graph.
+clean_salaries <- salaries %>% 
+  pivot_longer(cols = matches("Salary"),
+               names_to = "Rank",
+               values_to = "Salary") %>% 
+  mutate(
+    Rank = case_when(
+      Rank == "AvgFullProfSalary"   ~ "Full",
+      Rank == "AvgAssocProfSalary"  ~ "Associate",
+      Rank == "AvgAssistProfSalary" ~ "Assistant",
+      Rank == "AvgProfSalaryAll"    ~ "All",
+      TRUE ~ Rank
+    )
+  ) %>% 
+  filter(Rank != "All", Tier != "VIIB")  #Excluding the "All" group and "VIIB" tier
+```
+I used a facet_wrap() to separate them by Tier, and theme() to alter the x-axis titles.
+```{r plot-salaries, message=FALSE, warning=FALSE}
+# Plotting our graph.
+plot <- clean_salaries %>% 
+  ggplot(aes(x = Rank, y = Salary, fill = Rank)) +
+  geom_boxplot() +
+  facet_wrap(~ Tier) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotating the x-axis text.
+
+plot
+```
+
+## Question 2: Build an ANOVA model that takes into consideration "State”, “Tier”, “Rank” on “Salary” 
+
+I used the aov() function to create the ANOVA model, then I summarized the model using summary(). 
+```{r anova-model}
+aovmod <- clean_salaries %>% 
+  aov(formula = Salary ~ State + Tier + Rank)
+summary(aovmod) #Prints the summary output
+```
+
+## Question 3: Tidy the “Juniper_Oils.csv” data
+
+To clean this, I took the various chemical columns and turned them into rows. The names became the ChemicalID, and the values became their concentration.  
+```{r load-oils}
+oils <- read.csv("Juniper_Oils.csv", check.names = FALSE)
+clean_oils <- oils %>% 
+  pivot_longer(cols = matches(c("alpha-pinene","para-cymene","alpha-terpineol","cedr-9-ene","alpha-cedrene","beta-cedrene","cis-thujopsene","alpha-himachalene","beta-chamigrene","cuparene","compound 1","alpha-chamigrene","widdrol","cedrol","beta-acorenol","alpha-acorenol","gamma-eudesmol","beta-eudesmol","alpha-eudesmol","cedr-8-en-13-ol","cedr-8-en-15-ol","compound 2","thujopsenal")),
+               names_to = "ChemicalID",
+               values_to = "Concentration")
+```
+
+## Question 4: Make a graph of Chemical Concentrations through time
+
+For graphing, I used the ggplot function, and I made sure the proper inputs were in facet_wrap() function to match the example graph provided. 
+```{r plot-oils, message=FALSE, warning=FALSE}
+plot2 <- clean_oils %>% 
+  ggplot(aes(x = YearsSinceBurn, y = Concentration)) +
+  facet_wrap(~ChemicalID, axes = "all_x", scales = "free_y") +
+  geom_smooth()
+
+plot2
+```
+
+## Question 5: Create a GLM to find which chemicals are significantly affected by "Years Since Burn"
+
+I used the glm() function to make the model, and I made sure the interactions between the ChemicalID and YearsSinceBurn were included to find the significant chemicals within the model. From there it was just a matter of cleaning the output term names and making sure it only displayed parameters that were below the 0.05 p-value threshold.
+```{r glm-model, message=FALSE, warning=FALSE}
+glmmod <- glm(data = clean_oils, formula = Concentration ~ ChemicalID + ChemicalID:YearsSinceBurn)
+
+glmmod %>% 
+  tidy() %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(term = gsub("ChemicalID", "", term))
+```
+
